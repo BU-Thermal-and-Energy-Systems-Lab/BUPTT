@@ -139,7 +139,7 @@ Make sure placeholders in your templates match those used in `Executer.py`.
 
 ---
 
-## Troubleshooting
+## Concerns
 
 - **Near-field line sampling disabled**  
   → `ILINE=0` means no line cuts; use `IVTR=1` in `ddpostprocess.par` to get full-volume VTR output.
