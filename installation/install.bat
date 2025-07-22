@@ -15,10 +15,10 @@ conda env list | findstr /b "%ENV_NAME%" >nul && (
 )
 
 :: create shortcut batch
-set SHORTCUT=%USERPROFILE%\Desktop\RunPTTool.bat
+set SHORTCUT=%USERPROFILE%\Desktop\BUPTT.bat
 echo @echo off> "%SHORTCUT%"
 echo call "%USERPROFILE%\anaconda3\Scripts\activate.bat" %ENV_NAME%>> "%SHORTCUT%"
 echo python "%cd%\%SCRIPT%">> "%SHORTCUT%"
 echo exit /b>> "%SHORTCUT%"
 
-echo Done. Double-click RunPTTool.bat on your Desktop.
+echo Done. Double-click BUPTT.bat on your Desktop.
