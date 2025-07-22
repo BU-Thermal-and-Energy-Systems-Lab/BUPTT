@@ -125,7 +125,7 @@ This will:
 
 3. **Outputs**  
    - CSV histograms saved under `<outputDir>/ensembles/<ensemble_id>/`
-   - DDSCAT input/output & VTR files saved to `<outputDir>/<ensemble_id>/`
+   - DDSCAT input/output & VTR files saved to `<outputDir>/ensembles/<ensemble_id>/`
    - Database: `ensembles.db` in the project root (or in outputDir if you change code)
 
 ---
