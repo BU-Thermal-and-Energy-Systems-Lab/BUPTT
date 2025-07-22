@@ -130,20 +130,6 @@ This will:
 
 ---
 
-## Environment Notes
-
-- The provided `pttenv.yml` is **portable** (`--no-builds`, no `prefix:`).  
-  To re-export from your current env:
-  ```bash
-  conda env export --no-builds | grep -v "^prefix:" > pttenv.yml
-  ```
-- Minimal (from-history) export if you prefer lighter specs:
-  ```bash
-  conda env export --from-history --no-builds | grep -v "^prefix:" > pttenv_min.yml
-  ```
-
----
-
 ## DDSCAT Templates
 
 - `temp_file/` and `temp_file_base/` contain template `ddscat.par`, `shape.dat` headers, etc.
