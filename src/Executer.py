@@ -49,10 +49,11 @@ class Executer:
         """
         Construct DDSCAT shape/material files and execute the solver.
 
-        Generates ``shape.dat`` and rewrites ``ddscat.par`` by formatting
-        template placeholders with ensemble‑specific values (effective
-        radius, material paths, etc.). All dipole lattice coordinates are
-        appended to ``shape.dat`` after computing per‑body discretizations.
+        Generates ``shape.dat``, reads template parameter files, formats 
+        ``ddscat.par`` template placeholders with ensemble‑specific values 
+        (effective radius, material paths, etc.). All integer dipole lattice 
+        coordinates are appended to ``shape.dat`` after computing per‑body
+        discretizations.
 
         If ``make_baseline`` is ``True`` a second “baseline” run is
         created in a sibling directory containing only spherical bodies.
