@@ -179,9 +179,7 @@ class CloudGenerator:
 
                 # 3) compute exact V_cell to meet phi1
                 Vcell = (N1 * V1) / phi1         # in dipole‑volume units
-                # you can check how close phi2 is:
-                phi2_achieved = (N2 * V2) / Vcell
-
+                
                 # 4) edge length in dipole units
                 L = math.ceil(Vcell ** (1/3))
 
@@ -258,7 +256,6 @@ class CloudGenerator:
             
 
             volume = 0
-            start_time = time()
             collection_bodies = []
             for _, particle in self.particle_data.items():
                 par_vol = 0
