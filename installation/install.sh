@@ -4,7 +4,7 @@ set -euo pipefail
 # --- CONFIG ---------------------------------------------------------------
 YAML_FILE="environment.yml"          # your environment file
 SCRIPT_TO_RUN="main.py"              # the Python entrypoint you want to launch
-SHORTCUT_NAME="RunPTTool.command"    # name of the clickable shortcut
+SHORTCUT_NAME="BUPTT"                # name of the clickable shortcut
 ENV_NAME=""                          # leave empty to read from YAML
 
 # --- FUNCTIONS ------------------------------------------------------------
