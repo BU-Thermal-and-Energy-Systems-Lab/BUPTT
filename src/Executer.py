@@ -29,7 +29,7 @@ class Executer:
         Illumination wavelength in nanometers.
     target : str, optional
         Output directory into which DDSCAT input/output files are written.
-        Defaults to ``<outputDir>/<ensemble_id>`` from ``QSettings``.
+        Defaults to ``<outputDir>/ensembles/<ensemble_id>`` from ``QSettings``.
     """
     def __init__(self, ensemble, wavelength = 800, target=None):
         """Store configuration and prepare an environment with OMP threads."""
@@ -37,7 +37,7 @@ class Executer:
         self.settings = QSettings("LogicLorenzo", "PTTool")
         self.wavelength = wavelength / 1000
         if target is None:
-            target = os.path.join(self.settings.value("outputDir"), self.ensemble.ensemble_id)
+            target = os.path.join(self.settings.value("outputDir"), "ensembles", self.ensemble.ensemble_id)
         self.target = target
 
         env = os.environ.copy()
@@ -63,101 +63,88 @@ class Executer:
             Whether to execute an additional baseline DDSCAT run using
             only the spherical subset of bodies.
         """
-        ddscat_path = os.path.join(self.paths["DDSCATDir"], "src/ddscat")
         
-        copytree(os.path.join(self.settings.value("DDSCATDir"), "temp_file"), self.target, dirs_exist_ok=True)
-        total_dipoles = 0
-        total_vol = 0
-        pre = [
-        "1.000000  0.000000  0.000000 = A_1 vector\n",
-        "0.000000  1.000000  0.000000 = A_2 vector\n",
-        "1.000000  1.000000  1.000000 = lattice spacings (d_x,d_y,d_z)/d\n",
-        "0.000000  0.000000  0.000000 = lattice offset x0(1-3) = (x_TF,y_TF,z_TF)/d for dipole 0 0 0\n",
-        "JA  IX  IY  IZ ICOMP(x,y,z)\n",
-        ]
-        for body in self.ensemble.bodies:
-            total_vol += body.volume
-            
-        with open(f"{self.target}/shape.dat", "w") as f:
-            #f.write(f">{self.ensemble.ensemble_id}\n"),
-            f.write(f"{self.ensemble.ensemble_id}\n"),
-            f.write("{total_dipoles} = NAT \n"),
-            f.writelines(pre)    
-        # self.settings.value("materialDir")
-        with open(f"{self.target}/ddscat.par", "r+") as f:
-            content = f.read()
-            modified_content = content.format(
-                mat1=os.path.join("/home/ege/ddscat/diel", self.ensemble.materials["sphere"]),
-                mat2=os.path.join("/home/ege/ddscat/diel", self.ensemble.materials["rod"]),
-                #wav=self.wavelength,
-                eff_rad=round(((3 * total_vol / (4 * np.pi)) ** (1/3))*self.ensemble.dipole_size/10**3, 4))
-            f.seek(0)  # Move the file pointer to the beginning of the file
-            f.write(modified_content)
-            f.truncate()  # Ensure the file is truncated to the new size
-            
-        for body in self.ensemble.bodies:
-            if body.shape == "sphere":
-                material_idx = 1
-            elif body.shape == "rod":
-                material_idx = 2
-            body_dipoles = body.discretize()
-            num_dipoles = len(body_dipoles)
-            dipole_points = np.hstack(
-                (
-                    np.array(range(total_dipoles + 1, total_dipoles + num_dipoles + 1)).reshape(num_dipoles, 1).astype(int),
-                    np.around(body_dipoles).astype(int),
-                    np.array([material_idx] * 3 * num_dipoles).reshape(num_dipoles, 3).astype(int),
-                )
-            )
-            with open(f"{self.target}/shape.dat", "a+") as f:
-                for line in dipole_points:
-                    f.write(" ".join(map(str, line)) + "\n")
-            total_dipoles += num_dipoles
-        print(f"{total_dipoles} dipoles were placed in the ensemble, {len(self.ensemble.bodies)} bodies were used. Body parameters: sr={self.ensemble.particle_data['sphere']['params'][0]}, rr={self.ensemble.particle_data['rod']['params'][0]}, rh={self.ensemble.particle_data['rod']['params'][1]}")
-            
-        with open(f"{self.target}/shape.dat", "r+") as f:
-            modified_content = f.read().format(total_dipoles= str(total_dipoles))
-            f.seek(0)  # Move the file pointer to the beginning of the file
-            f.write(modified_content)
-            f.truncate()  # Ensure the file is truncated to the new size
-        
+        def make_files(bodies, target, baseline=False):
+            if baseline:
+                temp_path = os.path.join(self.settings.value("DDSCATDir"), "temp_file", "baseline.par")
+                with open(temp_path, "r+") as f:
+                    content = f.read()
 
-        # Baseline portion
-        def estimate_baseline(target):
-            base_target = os.path.join(target + "_baseline")
-            copytree(os.path.join(self.settings.value("DDSCATDir"), "temp_file_base"), base_target, dirs_exist_ok=True)
+                with open(f"{target}/ddscat.par", "r+") as f:
+                    modified_content = content.format(
+                        mat=os.path.join(self.settings.value("materialDir"), self.ensemble.materials["plasmonic"]),
+                        wav=self.wavelength,
+                        eff_rad=round(((3 * total_vol / (4 * np.pi)) ** (1/3))*self.ensemble.dipole_size/10**3, 4))
+                    f.seek(0)  # Move the file pointer to the beginning of the file
+                    f.write(modified_content)
+                    f.truncate()  # Ensure the file is truncated to the new size
+            else: 
+                temp_path = os.path.join(self.settings.value("DDSCATDir"), "temp_file", "mixture.par")
+                with open(temp_path, "r+") as f:
+                    content = f.read()
+
+                with open(f"{target}/ddscat.par", "r+") as f:
+                    modified_content = content.format(
+                        mat1=os.path.join(self.settings.value("materialDir"), self.ensemble.materials["plasmonic"]),
+                        mat2=os.path.join(self.settings.value("materialDir"), self.ensemble.materials["dielectric"]),
+                        wav=self.wavelength,
+                        eff_rad=round(((3 * total_vol / (4 * np.pi)) ** (1/3))*self.ensemble.dipole_size/10**3, 4))
+                    f.seek(0)  # Move the file pointer to the beginning of the file
+                    f.write(modified_content)
+                    f.truncate()  # Ensure the file is truncated to the new size
+            
+            total_dipoles = 0
             total_vol = 0
-            for body in self.ensemble.bodies:
-                if body.shape == "sphere":
-                    total_vol += body.volume
-
-            with open(os.path.join(base_target, "ddscat.par"), "r+") as f:
-                content = f.read()
-                modified_content = content.format(
-                    mat = os.path.join("/home/ege/ddscat/diel", self.ensemble.materials["sphere"][0]),
-                    cloud_radius = self.ensemble.cloud_radius / 10**3,  # Convert to micrometers
-                    eff_rad = round(((3 * total_vol / (4 * np.pi)) ** (1/3)) * self.ensemble.dipole_size / 10**3, 4),
-                    #wav = self.wavelength
+            pre = [
+            "1.000000  0.000000  0.000000 = A_1 vector\n",
+            "0.000000  1.000000  0.000000 = A_2 vector\n",
+            "1.000000  1.000000  1.000000 = lattice spacings (d_x,d_y,d_z)/d\n",
+            "0.000000  0.000000  0.000000 = lattice offset x0(1-3) = (x_TF,y_TF,z_TF)/d for dipole 0 0 0\n",
+            "JA  IX  IY  IZ ICOMP(x,y,z)\n",
+            ]
+            for body in bodies:
+                total_vol += body.volume
+                
+            with open(f"{target}/shape.dat", "w") as f:
+                f.write(f"{self.ensemble.ensemble_id}\n"),
+                f.write("{total_dipoles} = NAT \n"),
+                f.writelines(pre)    
+        
+            for body in bodies:
+                body_dipoles = body.discretize()
+                num_dipoles = len(body_dipoles)
+                dipole_points = np.hstack(
+                    (
+                        np.array(range(total_dipoles + 1, total_dipoles + num_dipoles + 1)).reshape(num_dipoles, 1).astype(int),
+                        np.around(body_dipoles).astype(int),
+                        np.array([body.material_idx] * 3 * num_dipoles).reshape(num_dipoles, 3).astype(int),
+                    )
                 )
+                with open(f"{target}/shape.dat", "a+") as f:
+                    for line in dipole_points:
+                        f.write(" ".join(map(str, line)) + "\n")
+                total_dipoles += num_dipoles
+                
+            with open(f"{target}/shape.dat", "r+") as f:
+                modified_content = f.read().format(total_dipoles= str(total_dipoles))
                 f.seek(0)  # Move the file pointer to the beginning of the file
                 f.write(modified_content)
                 f.truncate()  # Ensure the file is truncated to the new size
-
-            with open(os.path.join(base_target, "spheres.txt"), "w") as f:
-                for body in self.ensemble.bodies:
-                    if body.shape == "sphere":
-                        f.write(f"{body.center[0]} {body.center[1]} {body.center[2]} {body.radius}\n")
-            
-            env = os.environ.copy()
-            env["OMP_NUM_THREADS"] = "16"
-
-            subprocess.run([ddscat_path], cwd=base_target, check=False, env=self.env)
         
-        
+        os.makedirs(self.target, exist_ok=True)
+        ddscat_path = os.path.join(self.settings.value("DDSCATDir"), "src/ddscat")
+        make_files(self.ensemble.bodies, self.target)
         subprocess.run([ddscat_path], cwd=self.target, check=False, env=self.env)
-        
         if make_baseline:
-            estimate_baseline(self.target)
+            baseline_dir = os.path.join(self.target, "_baseline")
+            os.makedirs(baseline_dir, exist_ok=True)
+            make_files(
+                [body for body in self.ensemble.bodies if body.material_idx == 1],
+                baseline_dir,
+                baseline=make_baseline
+            )
+            subprocess.run([ddscat_path], cwd=self.target, check=False, env=self.env)
+        
                 
 
     def run_ddpostprocess(self):
@@ -170,14 +157,14 @@ class Executer:
         """
         
         preamble = [
-        "’w000r000k000.E1’ = name of file with E stored",
-        "’VTRoutput’ = prefix for name of VTR output files",
-        "1 = IVTR (set to 1 to create VTR file with |E|)",
-        "0 = ILINE (set to 1 to evaluate E along a line)"]
+        "’w000r000k000.E1’ = name of file with E stored\n",
+        "’VTRoutput’ = prefix for name of VTR output files\n",
+        "1 = IVTR (set to 1 to create VTR file with |E|)\n",
+        "0 = ILINE (set to 1 to evaluate E along a line)\n"]
 
-        with open(f"{self.target}/ddpostprocess.par", "+w") as f:
+        with open(f"{self.target}/ddpostprocess.par", "w") as f:
             f.writelines(preamble)
 
-        ddpost_path = os.path.join(self.paths["DDSCATDir"], "src/ddpostprocess")
+        ddpost_path = os.path.join(self.settings.value("DDSCATDir"), "src/ddpostprocess")
         subprocess.run(ddpost_path, cwd=self.target, check=False, env=self.env)
         
