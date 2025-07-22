@@ -43,8 +43,7 @@ A PyQt5 desktop application for generating, storing, visualizing, and post‑pro
 │  ├─ Calculator.py       # Distances/angles + histograms
 │  └─ cloud_generation.py # CloudGenerator (C2E, V2E) + reload utilities
 ├─ materials/             # Optical constant files (nk tables, etc.)
-├─ temp_file/             # Template dir copied for standard ddscat runs
-└─ temp_file_base/        # Template dir for baseline runs
+└─ temp_file/             # Template parameter file location
 ```
 
 ---
@@ -132,8 +131,8 @@ This will:
 
 ## DDSCAT Templates
 
-- `temp_file/` and `temp_file_base/` contain template `ddscat.par`, `shape.dat` headers, etc.
-- `Executer.run_ddscat()` copies these into the ensemble’s target directory and formats placeholders (`{eff_rad}`, `{mat1}`, `{mat2}`, …).
+- `temp_file/` contains parameter files for mixtures and baseline (plasmonic particles only, material_idx = 1)
+- `Executer.run_ddscat()` reads these files and writes into the ensemble’s target directory and formats placeholders (`{eff_rad}`, `{mat1}`, `{mat2}`, …).
 
 Make sure placeholders in your templates match those used in `Executer.py`.
 
